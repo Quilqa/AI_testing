@@ -1,6 +1,7 @@
 import os
 import threading
 from dataclasses import dataclass
+from io import BytesIO
 from pathlib import Path
 from typing import Iterable, Optional
 
@@ -86,8 +87,9 @@ def extract_file_contents(uploaded_files: Iterable) -> tuple[list[ExtractedFile]
     for uploaded_file in uploaded_files:
         suffix = Path(uploaded_file.name).suffix.lower()
         raw = uploaded_file.getvalue()
+        mime_type = uploaded_file.type or ""
 
-        if uploaded_file.type.startswith("text/") or suffix in SUPPORTED_TEXT_EXTENSIONS:
+        if mime_type.startswith("text/") or suffix in SUPPORTED_TEXT_EXTENSIONS:
             extracted.append(ExtractedFile(name=uploaded_file.name, content=_decode_text_bytes(raw)))
             continue
 
@@ -98,7 +100,7 @@ def extract_file_contents(uploaded_files: Iterable) -> tuple[list[ExtractedFile]
                 )
                 continue
             try:
-                reader = PdfReader(uploaded_file)
+                reader = PdfReader(BytesIO(raw))
                 pages = [page.extract_text() or "" for page in reader.pages]
                 extracted.append(ExtractedFile(name=uploaded_file.name, content="\n".join(pages)))
             except Exception as err:  # pragma: no cover - depends on user files
@@ -106,7 +108,7 @@ def extract_file_contents(uploaded_files: Iterable) -> tuple[list[ExtractedFile]
             continue
 
         warnings.append(
-            f"Skipped `{uploaded_file.name}`: unsupported type `{uploaded_file.type or suffix}`."
+            f"Skipped `{uploaded_file.name}`: unsupported type `{mime_type or suffix}`."
         )
     return extracted, warnings
 
