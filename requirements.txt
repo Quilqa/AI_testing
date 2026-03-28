@@ -1,0 +1,6 @@
+streamlit
+unsloth
+transformers
+accelerate
+bitsandbytes
+pypdf
